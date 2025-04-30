@@ -9,8 +9,11 @@ const eslintConfig = [
   ...compat.config({
     extends: ['next'],
     rules: {
-      'react/no-unescaped-entities': 'off',
-      '@next/next/no-page-custom-font': 'off',
+      'react/no-unescaped-entities': 'off', // Désactiver cette règle
+      '@next/next/no-page-custom-font': 'off', // Désactiver cette règle
+      // Ajoutez d'autres règles que vous souhaitez désactiver ici
+      'no-console': 'off', // Exemple : désactiver les avertissements pour console.log
+      'no-unused-vars': 'off', // Exemple : désactiver les avertissements pour les variables non utilisées
     },
   }),
 ];
