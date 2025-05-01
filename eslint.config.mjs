@@ -11,6 +11,7 @@ const eslintConfig = [
     rules: {
       // Désactiver toutes les règles
       'react/no-unescaped-entities': 'off',
+      '@next/next/no-img-element': 'off',
       '@next/next/no-page-custom-font': 'off',
       'react-hooks/rules-of-hooks': 'off', // Désactiver les règles des hooks
       'react-hooks/exhaustive-deps': 'off', // Désactiver les dépendances des hooks
