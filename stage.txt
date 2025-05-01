@@ -1,0 +1,938 @@
+import React, { useState, useRef, useEffect } from 'react';
+// Importer des icônes (exemple avec lucide-react, assurez-vous de l'installer: npm install lucide-react)
+import { ShieldCheck, ScanLine, LockKeyhole, FileText, Send, Settings, ListChecks, Fingerprint, Terminal, ChevronDown, ChevronUp } from 'lucide-react'; // Ajout des icônes pour le bouton
+
+// Composant Principal de l'Application
+function App() {
+  // État pour suivre l'onglet actif
+  const [activeTab, setActiveTab] = useState('nmap'); // 'nmap', 'metasploit', 'crypto', 'settings'
+
+  // Fonction pour changer d'onglet
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-gray-100 font-sans flex flex-col">
+      {/* En-tête */}
+      <header className="bg-gray-800 shadow-lg p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <ShieldCheck className="text-blue-500 h-8 w-8" />
+          <h1 className="text-2xl font-bold text-white">CyberTools</h1>
+        </div>
+        {/* Potentiellement ajouter des boutons ou infos utilisateur ici */}
+      </header>
+
+      <div className="flex flex-1 overflow-hidden"> {/* Ajout de overflow-hidden ici */}
+        {/* Barre Latérale de Navigation */}
+        <aside className="w-64 bg-gray-800 p-4 space-y-4 border-r border-gray-700 flex-shrink-0 overflow-y-auto"> {/* Ajout de overflow-y-auto */}
+          <nav className="flex flex-col space-y-2">
+            <button
+              onClick={() => changeTab('nmap')}
+              className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200 w-full text-left ${ // Ajout w-full text-left
+                activeTab === 'nmap'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'hover:bg-gray-700 text-gray-300'
+              }`}
+            >
+              <ScanLine className="h-5 w-5 flex-shrink-0" /> {/* Ajout flex-shrink-0 */}
+              <span className="truncate">Nmap</span> {/* Ajout truncate */}
+            </button>
+            <button
+              onClick={() => changeTab('metasploit')}
+              className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200 w-full text-left ${ // Ajout w-full text-left
+                activeTab === 'metasploit'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'hover:bg-gray-700 text-gray-300'
+              }`}
+            >
+              <Fingerprint className="h-5 w-5 flex-shrink-0" /> {/* Ajout flex-shrink-0 */}
+              <span className="truncate">Metasploit</span> {/* Ajout truncate */}
+            </button>
+            <button
+              onClick={() => changeTab('crypto')}
+              className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200 w-full text-left ${ // Ajout w-full text-left
+                activeTab === 'crypto'
+                  ? 'bg-green-600 text-white shadow-md' // Changé en vert pour crypto
+                  : 'hover:bg-gray-700 text-gray-300'
+              }`}
+            >
+              <LockKeyhole className="h-5 w-5 flex-shrink-0" /> {/* Ajout flex-shrink-0 */}
+              <span className="truncate">Cryptographie</span> {/* Ajout truncate */}
+            </button>
+          </nav>
+          <div className="pt-4 border-t border-gray-700">
+             <button
+              onClick={() => changeTab('settings')} // Ajout de l'action pour changer d'onglet
+              className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200 text-left ${ // Ajout text-left
+                 activeTab === 'settings'
+                  ? 'bg-gray-700 text-white shadow-md' // Style différent pour l'onglet Paramètres actif
+                  : 'hover:bg-gray-700 text-gray-300'
+              }`}
+            >
+              <Settings className="h-5 w-5 flex-shrink-0" /> {/* Ajout flex-shrink-0 */}
+              <span className="truncate">Paramètres</span> {/* Ajout truncate */}
+            </button>
+          </div>
+        </aside>
+
+        {/* Contenu Principal */}
+        <main className="flex-1 p-6 overflow-y-auto"> {/* Ajout de overflow-y-auto ici */}
+          {activeTab === 'nmap' && <NmapSection />}
+          {activeTab === 'metasploit' && <MetasploitSection />}
+          {activeTab === 'crypto' && <CryptoSection />}
+          {activeTab === 'settings' && <SettingsSection />} {/* Rendu de la nouvelle section Paramètres */}
+        </main>
+      </div>
+
+      {/* Pied de page (optionnel) */}
+      <footer className="bg-gray-800 text-center text-xs p-3 text-gray-500 border-t border-gray-700 flex-shrink-0"> {/* Ajout flex-shrink-0 */}
+        CyberTools | Interface de démonstration | Les opérations réelles ne sont pas implémentées.
+      </footer>
+    </div>
+  );
+}
+
+// --- Section Nmap ---
+function NmapSection() {
+  const [target, setTarget] = useState('');
+  const [scanType, setScanType] = useState('tcp_syn');
+  const [customCommand, setCustomCommand] = useState(''); // Nouvel état pour la commande personnalisée
+  const [useCustomCommand, setUseCustomCommand] = useState(false); // Nouvel état pour basculer
+  const [output, setOutput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Simule l'exécution d'un scan
+  const handleScan = () => {
+    if (!target && !useCustomCommand) { // Cible requise sauf si commande personnalisée utilisée
+      setOutput('Erreur: Veuillez entrer une cible (IP ou domaine).');
+      return;
+    }
+     if (useCustomCommand && !customCommand) { // Commande personnalisée requise si l'option est activée
+        setOutput('Erreur: Veuillez entrer une commande Nmap personnalisée.');
+        return;
+     }
+
+    setIsLoading(true);
+    setOutput(''); // Effacer la sortie précédente
+
+    const commandToSimulate = useCustomCommand
+      ? `nmap ${customCommand} ${target || ''}`.trim() // Utilise la commande personnalisée + cible (si présente)
+      : `nmap ${nmapScanTypes.find(s => s.id === scanType)?.command || ''} ${target}`; // Utilise le type de scan prédéfini
+
+    setOutput(`Simulation de l'exécution de la commande : ${commandToSimulate}\n`);
+    setOutput(prev => prev + `Starting Nmap 7.9X ( https://nmap.org ) at ${new Date().toISOString()}\n`);
+
+    // *** ATTENTION: Ceci est une simulation. Pas d'appel réseau réel. ***
+    setTimeout(() => {
+      // Générer une sortie Nmap factice
+      const fakeOutput = `
+Nmap scan report for ${target || 'simulated.target.com'} (${target.match(/^[0-9.]+$/) ? target : 'XXX.XXX.XXX.XXX'})
+Host is up (0.0XX s latency).
+Not shown: 99X closed tcp ports (reset)
+PORT    STATE SERVICE
+22/tcp  open  ssh     (Simulation)
+80/tcp  open  http    (Simulation)
+443/tcp open  https   (Simulation)
+${Math.random() > 0.5 ? '135/tcp open  msrpc   (Simulation)\n' : ''}${Math.random() > 0.7 ? '445/tcp open  microsoft-ds (Simulation)\n' : ''}
+
+Nmap done: 1 IP address (1 host up) scanned in ${ (Math.random() * 5 + 1).toFixed(2)} seconds
+      `;
+      setOutput(prev => prev + fakeOutput);
+      setIsLoading(false);
+    }, 2000); // Simule un délai
+  };
+
+  // Liste (non exhaustive) de types de scans Nmap pour l'UI avec descriptions et commandes simulées
+  const nmapScanTypes = [
+    { id: 'tcp_syn', name: 'Scan SYN (-sS)', description: 'Discret, rapide, scan par défaut (root)', command: '-sS' },
+    { id: 'tcp_connect', name: 'Scan Connect (-sT)', description: 'Plus bruyant, utilise l\'appel système connect()', command: '-sT' },
+    { id: 'udp', name: 'Scan UDP (-sU)', description: 'Scan des ports UDP ouverts', command: '-sU' },
+    { id: 'fin', name: 'Scan FIN (-sF)', description: 'Discret, peut passer certains firewalls', command: '-sF' },
+    { id: 'xmas', name: 'Scan Xmas (-sX)', description: 'Active les flags FIN, PSH, URG', command: '-sX' },
+    { id: 'null', name: 'Scan Null (-sN)', description: 'Aucun flag activé', command: '-sN' },
+    { id: 'ack', name: 'Scan ACK (-sA)', description: 'Détermine si les ports sont filtrés', command: '-sA' },
+    { id: 'version', name: 'Détection Version (-sV)', description: 'Tente de déterminer le service et sa version', command: '-sV' },
+    { id: 'os', name: 'Détection OS (-O)', description: 'Tente de déterminer le système d\'exploitation', command: '-O' },
+    { id: 'aggressive', name: 'Scan Agressif (-A)', description: 'Active détection OS, version, script scan, et traceroute', command: '-A' },
+    { id: 'ping', name: 'Ping Scan (-sn)', description: 'Découverte d\'hôtes sans scan de ports', command: '-sn' },
+    { id: 'list', name: 'List Scan (-sL)', description: 'Liste les cibles sans les scanner', command: '-sL' },
+    { id: 'rpc', name: 'RPC Scan (-sR)', description: 'Trouve les programmes RPC', command: '-sR' },
+    { id: 'script_default', name: 'Scripts par défaut (--script default)', description: 'Exécute les scripts sûrs par défaut', command: '--script default' },
+    { id: 'script_vuln', name: 'Scripts Vulnérabilités (--script vuln)', description: 'Vérifie les vulnérabilités connues', command: '--script vuln' },
+    { id: 'fast', name: 'Scan Rapide (-F)', description: 'Scan moins de ports que le scan par défaut', command: '-F' },
+    { id: 'top_ports', name: 'Top Ports (--top-ports <num>)', description: 'Scan les N ports les plus communs', command: '--top-ports 1000' }, // Simulation, pourrait nécessiter un input
+    { id: 'port_range', name: 'Plage de Ports (-p <range>)', description: 'Scan une plage spécifique (ex: 1-100)', command: '-p 1-1024' }, // Simulation, pourrait nécessiter un input
+    // ... continuer à ajouter pour atteindre 50+
+  ];
+
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-semibold text-blue-400 border-b border-gray-700 pb-2">Scan Nmap</h2>
+
+      {/* Option de commande personnalisée */}
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="useCustomCommand"
+          checked={useCustomCommand}
+          onChange={(e) => setUseCustomCommand(e.target.checked)}
+          className="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+        />
+        <label htmlFor="useCustomCommand" className="text-sm font-medium text-gray-300">
+          Utiliser une commande Nmap personnalisée (pour experts)
+        </label>
+      </div>
+
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        {/* Cible */}
+        <div className={`${useCustomCommand ? 'md:col-span-3' : 'md:col-span-2'}`}> {/* Occupe plus de colonnes si commande personnalisée */}
+          <label htmlFor="target" className="block text-sm font-medium text-gray-300 mb-1">
+            Cible (IP ou Domaine) {useCustomCommand && '(Optionnel si inclus dans la commande personnalisée)'}
+          </label>
+          <input
+            type="text"
+            id="target"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            placeholder="ex: 192.168.1.1 ou example.com"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-100 placeholder-gray-400" // Modifié: focus:ring-2
+          />
+        </div>
+
+        {/* Bouton Scan */}
+        <button
+          onClick={handleScan}
+          disabled={isLoading || (useCustomCommand && !customCommand)} // Désactivé si chargement ou commande personnalisée vide
+          className={`w-full px-4 py-2 rounded-md text-white font-semibold transition-colors duration-200 flex items-center justify-center space-x-2 ${
+            isLoading || (useCustomCommand && !customCommand)
+              ? 'bg-gray-500 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900' // Ajout styles focus
+          }`}
+        >
+          {isLoading ? (
+             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+            <ScanLine className="h-5 w-5" />
+          )}
+          <span>{isLoading ? 'Scan en cours...' : 'Lancer le Scan'}</span>
+        </button>
+      </div>
+
+       {/* Sélection Type de Scan ou Commande Personnalisée */}
+       {useCustomCommand ? (
+           <div>
+               <label htmlFor="customCommand" className="block text-sm font-medium text-gray-300 mb-1">
+                   Commande Nmap personnalisée (sans "nmap")
+               </label>
+               <input
+                   type="text"
+                   id="customCommand"
+                   value={customCommand}
+                   onChange={(e) => setCustomCommand(e.target.value)}
+                   placeholder="ex: -sV -p 1-1024 -A"
+                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-100 placeholder-gray-400"
+               />
+           </div>
+       ) : (
+           <div>
+              <label htmlFor="scanType" className="block text-sm font-medium text-gray-300 mb-1">
+                Type de Scan Nmap (Simulation)
+              </label>
+              <select
+                id="scanType"
+                value={scanType}
+                onChange={(e) => setScanType(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-100" // Modifié: focus:ring-2
+              >
+                {nmapScanTypes.map(scan => (
+                  // Ajout de title pour tooltip au survol (optionnel mais utile)
+                  <option key={scan.id} value={scan.id} title={scan.description}>
+                    {scan.name} - {scan.description} {/* Affiche nom et description */}
+                  </option>
+                ))}
+              </select>
+            </div>
+       )}
+
+
+      {/* Zone de Sortie */}
+      <div>
+        <label htmlFor="output" className="block text-sm font-medium text-gray-300 mb-1">
+          Résultat (Simulation)
+        </label>
+        <textarea
+          id="output"
+          rows="15"
+          readOnly
+          value={output}
+          className="w-full p-3 bg-black text-green-400 font-mono text-sm border border-gray-700 rounded-md whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-blue-500" // Ajout focus style
+          placeholder="Les résultats du scan (simulés) apparaîtront ici..."
+        ></textarea>
+      </div>
+    </div>
+  );
+}
+
+// --- Section Metasploit ---
+function MetasploitSection() {
+   // État pour simuler des options
+  const [moduleType, setModuleType] = useState('exploit'); // exploit, auxiliary, payload, etc.
+  const [selectedModule, setSelectedModule] = useState('');
+  const [targetHost, setTargetHost] = useState('');
+  const [targetPort, setTargetPort] = useState('');
+  const [output, setOutput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false); // Nouvel état pour afficher le terminal simulé
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false); // Nouvel état pour afficher les options avancées
+  const [terminalInput, setTerminalInput] = useState(''); // Entrée de l'utilisateur dans le terminal
+  const [terminalHistory, setTerminalHistory] = useState([]); // Historique des commandes et sorties
+  const terminalOutputRef = useRef(null); // Référence pour faire défiler la sortie du terminal
+
+   // Classe CSS pour les inputs SANS outline/ring au focus
+   const inputStyleNoFocusRing = "w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none text-gray-100 placeholder-gray-400";
+
+   // Effet pour faire défiler la sortie du terminal vers le bas
+   useEffect(() => {
+       if (terminalOutputRef.current) {
+           terminalOutputRef.current.scrollTop = terminalOutputRef.current.scrollHeight;
+       }
+   }, [terminalHistory]); // Dépendance à l'historique du terminal
+
+    // Simule l'exécution d'un module
+  const handleRunModule = () => {
+    if (!selectedModule || !targetHost) {
+      setOutput('Erreur: Veuillez sélectionner un module et entrer une cible.');
+      return;
+    }
+     setIsLoading(true);
+     // Modifié: N'affiche plus la commande 'use'
+     setOutput(`[*] Simulation de l'exécution du module ${moduleType}/${selectedModule} sur ${targetHost}...\n`);
+     // *** ATTENTION: Ceci est une simulation. Pas d'exécution réelle. ***
+     setTimeout(() => {
+        const fakeOutput = `
+msf6 ${moduleType}(${selectedModule}) > set RHOSTS ${targetHost}
+RHOSTS => ${targetHost}
+${targetPort ? `msf6 ${moduleType}(${selectedModule}) > set RPORT ${targetPort}\nRPORT => ${targetPort}\n` : ''}
+msf6 ${moduleType}(${selectedModule}) > run
+
+[*] Running module against ${targetHost}...
+[+] Simulation: Module execution completed successfully. (This is fake output)
+[*] Scanned 1 of 1 hosts (${targetHost})
+        `;
+        setOutput(prev => prev + fakeOutput);
+        setIsLoading(false);
+     }, 2500);
+  };
+
+  // Simule l'exécution d'une commande dans le terminal
+  const handleTerminalCommand = (e) => {
+      if (e.key === 'Enter') {
+          e.preventDefault(); // Empêcher le saut de ligne par défaut
+          const command = terminalInput.trim();
+          if (!command) return;
+
+          setTerminalHistory(prev => [...prev, { type: 'command', text: `msf6 > ${command}` }]);
+          setTerminalInput(''); // Effacer l'entrée
+
+          // Simulation des réponses du terminal
+          let simulatedResponse = '';
+          const lowerCommand = command.toLowerCase();
+
+          if (lowerCommand === 'help') {
+              simulatedResponse = `
+Core Commands
+=============
+
+    Command       Description
+    --------      -----------
+    ?             Help menu
+    help          Help menu
+    exit          Exit the console
+    ...           (Simulation of other commands)
+              `;
+          } else if (lowerCommand.startsWith('show options')) {
+              simulatedResponse = `
+Module options (simulated/generic):
+
+   Name     Current Setting  Required  Description
+   ----     ---------------  --------  -----------
+   RHOSTS                    yes       Target host(s)
+   RPORT                     yes       Target port(s)
+   ...      (Simulation of other options)
+              `;
+          } else if (lowerCommand.startsWith('set ')) {
+              const parts = command.split(' ');
+              if (parts.length >= 3) {
+                  const option = parts[1];
+                  const value = parts.slice(2).join(' ');
+                  simulatedResponse = `${option} => ${value}\n`;
+              } else {
+                  simulatedResponse = "Usage: set <option> <value>\n";
+              }
+          } else if (lowerCommand === 'run' || lowerCommand === 'exploit') {
+               simulatedResponse = `
+[*] Simulating module execution...
+[+] Simulation: Module finished.
+               `;
+          }
+           else if (lowerCommand === 'clear' || lowerCommand === 'cls') {
+               setTerminalHistory([]); // Efface l'historique
+               return; // Ne pas ajouter de réponse simulée après l'effacement
+           }
+           else {
+              simulatedResponse = `Unknown command: ${command}\nType 'help' for a list of commands (simulation).\n`;
+          }
+
+          setTimeout(() => {
+              setTerminalHistory(prev => [...prev, { type: 'output', text: simulatedResponse }]);
+          }, 500); // Petit délai pour simuler le traitement
+      }
+  };
+
+
+  // Liste factice de modules pour l'UI (pourrait être très longue)
+  const metasploitModules = {
+    exploit: [
+      'windows/smb/ms17_010_eternalblue',
+      'multi/handler',
+      'unix/ftp/vsftpd_234_backdoor',
+      'windows/http/apache_mod_cgi_bash_env_exec',
+      'linux/http/elasticsearch_dynamic_script',
+      'windows/rdp/cve_2019_0708_bluekeep_rdp',
+      // Add more simulated exploit modules to reach 100+ total modules
+      ...Array.from({ length: 50 }).map((_, i) => `exploit/simulated/module_${i + 1}`),
+    ],
+    auxiliary: [
+        'scanner/ssh/ssh_login',
+        'scanner/http/dir_scanner',
+        'scanner/smb/smb_version',
+        'scanner/snmp/snmp_enum',
+        'server/capture/ftp',
+        'scanner/rdp/rdp_scanner',
+         // Add more simulated auxiliary modules
+        ...Array.from({ length: 20 }).map((_, i) => `auxiliary/simulated/scanner_${i + 1}`),
+        ...Array.from({ length: 20 }).map((_, i) => `auxiliary/simulated/server_${i + 1}`),
+        ...Array.from({ length: 10 }).map((_, i) => `auxiliary/simulated/admin_${i + 1}`),
+    ],
+    payload: [
+        'windows/meterpreter/reverse_tcp',
+        'linux/x86/meterpreter/reverse_tcp',
+        'cmd/unix/reverse_bash',
+        'php/meterpreter/reverse_tcp',
+        'python/meterpreter/reverse_tcp',
+        'java/meterpreter/reverse_tcp',
+         // Add more simulated payload modules
+        ...Array.from({ length: 50 }).map((_, i) => `payload/simulated/generic_${i + 1}`),
+    ],
+    post: [ // Ajout de quelques modules post-exploitation
+        'windows/gather/checkvm',
+        'multi/recon/local_exploit_suggester',
+        'linux/gather/enum_configs',
+         // Add more simulated post modules
+        ...Array.from({ length: 30 }).map((_, i) => `post/simulated/windows_${i + 1}`),
+        ...Array.from({ length: 30 }).map((_, i) => `post/simulated/linux_${i + 1}`),
+    ],
+    encoder: [ // Ajout de quelques encodeurs
+        'x86/shikata_ga_nai',
+        'cmd/powershell_base64',
+         // Add more simulated encoder modules
+        ...Array.from({ length: 10 }).map((_, i) => `encoder/simulated/x86_${i + 1}`),
+    ],
+     nop: [ // Add simulated NOP modules
+        ...Array.from({ length: 10 }).map((_, i) => `nop/simulated/x86_${i + 1}`),
+     ]
+  };
+
+  // Flatten all modules for a single list representation if needed, or keep structured
+  const allModulesCount = Object.values(metasploitModules).reduce((count, modules) => count + modules.length, 0);
+
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-semibold text-red-400 border-b border-gray-700 pb-2">Metasploit (Simulation)</h2>
+
+      {/* Section de Configuration du Module */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Configuration du Module */}
+        <div className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700">
+           <h3 className="text-xl font-medium text-gray-200 mb-3">Configuration Rapide (Simulation)</h3>
+           <div>
+              <label htmlFor="moduleType" className="block text-sm font-medium text-gray-300 mb-1">Type de Module</label>
+              <select
+                id="moduleType"
+                value={moduleType}
+                onChange={(e) => { setModuleType(e.target.value); setSelectedModule(''); }}
+                className={inputStyleNoFocusRing} // Utilise la classe sans ring
+              >
+                {Object.keys(metasploitModules).map(type => (
+                     <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option> // Capitalize first letter
+                ))}
+              </select>
+           </div>
+           <div>
+              <label htmlFor="selectedModule" className="block text-sm font-medium text-gray-300 mb-1">Module Spécifique (Simulation)</label>
+              <select
+                id="selectedModule"
+                value={selectedModule}
+                onChange={(e) => setSelectedModule(e.target.value)}
+                className={inputStyleNoFocusRing} // Utilise la classe sans ring
+               >
+                 <option value="">-- Sélectionner un module --</option>
+                 {(metasploitModules[moduleType] || []).map(mod => (
+                    <option key={mod} value={mod}>{mod}</option>
+                 ))}
+              </select>
+           </div>
+            <div>
+              <label htmlFor="targetHost" className="block text-sm font-medium text-gray-300 mb-1">Hôte Cible (RHOSTS)</label>
+              <input
+                type="text"
+                id="targetHost"
+                value={targetHost}
+                onChange={e => setTargetHost(e.target.value)}
+                placeholder="ex: 192.168.1.100"
+                className={inputStyleNoFocusRing} // Utilise la classe sans ring
+              />
+           </div>
+           <div>
+              <label htmlFor="targetPort" className="block text-sm font-medium text-gray-300 mb-1">Port Cible (RPORT) (Optionnel)</label>
+              <input
+                type="number"
+                id="targetPort"
+                value={targetPort}
+                onChange={e => setTargetPort(e.target.value)}
+                placeholder="ex: 445"
+                className={inputStyleNoFocusRing} // Utilise la classe sans ring
+              />
+           </div>
+            <button
+              onClick={handleRunModule}
+              disabled={isLoading}
+              className={`w-full px-4 py-2 rounded-md text-white font-semibold transition-colors duration-200 flex items-center justify-center space-x-2 ${
+                isLoading
+                  ? 'bg-gray-500 cursor-not-allowed'
+                  : 'bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800' // Ajout styles focus pour le bouton
+              }`}
+            >
+              {isLoading ? (
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <Fingerprint className="h-5 w-5" />
+              )}
+              <span>{isLoading ? 'Exécution...' : 'Exécuter Module (Simulé)'}</span>
+            </button>
+        </div>
+
+        {/* Console de Sortie (pour l'exécution rapide) */}
+        <div className="space-y-4">
+           <h3 className="text-xl font-medium text-gray-200 mb-3">Console de Sortie Rapide (Simulation)</h3>
+           <textarea
+              id="msfOutput"
+              rows="18" // Ajusté pour mieux s'adapter
+              readOnly
+              value={output}
+              className="w-full p-3 bg-black text-cyan-400 font-mono text-sm border border-gray-700 rounded-md whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-red-500" // Ajout focus style
+              placeholder="La sortie de Metasploit (simulée) apparaîtra ici..."
+           ></textarea>
+        </div>
+      </div>
+
+       {/* Bouton pour afficher/masquer les options avancées */}
+       <div className="mt-6 pt-6 border-t border-gray-700">
+           <button
+               onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+               className={`mb-4 px-4 py-2 rounded-md text-white font-semibold transition-colors duration-200 flex items-center space-x-2 ${
+                 showAdvancedOptions
+                   ? 'bg-gray-600 hover:bg-gray-700'
+                   : 'bg-red-600 hover:bg-red-700'
+               } focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900`}
+           >
+               {showAdvancedOptions ? (
+                   <ChevronUp className="h-5 w-5" />
+               ) : (
+                   <ChevronDown className="h-5 w-5" />
+               )}
+               <span>{showAdvancedOptions ? 'Masquer les Options Avancées (Simulation)' : 'Afficher les Options Avancées (Simulation)'}</span>
+           </button>
+
+           {/* Représentation des 100+ options et sous-options - Masquée/Affichable */}
+           {showAdvancedOptions && (
+               <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                   <h4 className="text-lg font-medium text-gray-300 mb-2">Options et Fonctionnalités Avancées (Simulation)</h4>
+                   <p className="text-sm text-gray-400 mb-3">
+                       Cette section représente l'étendue des options et sous-options disponibles dans Metasploit (plus de 100 options/modules et leurs paramètres).
+                       L'implémentation complète de toutes ces fonctionnalités dépasse le cadre de cette démo front-end.
+                   </p>
+                   {/* Simulation visuelle de quelques options/sous-options */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div>
+                           <label className="block text-sm font-medium text-gray-300 mb-1">Techniques d'Évasion (Simulation)</label>
+                           <select className={`${inputStyleNoFocusRing}`}>
+                               <option>-- Sélectionner une technique --</option>
+                               {Array.from({ length: 10 }).map((_, i) => (
+                                   <option key={`evasion_${i}`}>Technique d'évasion simulée {i + 1}</option>
+                               ))}
+                           </select>
+                       </div>
+                        <div>
+                           <label className="block text-sm font-medium text-gray-300 mb-1">Options de Proxy (Simulation)</label>
+                           <input type="text" placeholder="ex: socks4:127.0.0.1:9050" className={inputStyleNoFocusRing} />
+                       </div>
+                        <div>
+                           <label className="block text-sm font-medium text-gray-300 mb-1">Options de Threads (Simulation)</label>
+                           <input type="number" placeholder="ex: 10" className={inputStyleNoFocusRing} />
+                       </div>
+                        <div>
+                           <label className="block text-sm font-medium text-gray-300 mb-1">Options de Cible Avancées (Simulation)</label>
+                           <input type="text" placeholder="ex: file:/path/to/targets.txt" className={inputStyleNoFocusRing} />
+                       </div>
+                       {/* Ajouter d'autres éléments pour simuler la richesse des options */}
+                        {Array.from({ length: 10 }).map((_, i) => (
+                            <div key={`advanced_option_${i}`}>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Option Avancée Simulée {i + 1}</label>
+                                <input type="text" placeholder={`Valeur pour l'option ${i + 1}`} className={inputStyleNoFocusRing} />
+                            </div>
+                        ))}
+                   </div>
+                    <p className="mt-4 text-sm text-gray-400">
+                        Total de modules simulés (Exploits, Auxiliaires, Payloads, Post, Encodeurs, Nops) : {allModulesCount}
+                    </p>
+               </div>
+           )}
+       </div>
+
+
+       {/* Terminal Simulé - Positionné en bas */}
+       <div className="mt-6 pt-6 border-t border-gray-700">
+            <h3 className="text-xl font-semibold text-red-400 mb-3">Terminal Metasploit (Simulation pour Experts)</h3>
+            <p className="text-sm text-gray-400 mb-3">
+                Utilisez ce terminal simulé pour pratiquer les commandes de base de Metasploit. Les commandes réelles ne sont pas exécutées.
+            </p>
+             {/* Bouton pour afficher/masquer le terminal simulé */}
+            <button
+                onClick={() => setShowTerminal(!showTerminal)}
+                className={`mb-4 px-4 py-2 rounded-md text-white font-semibold transition-colors duration-200 flex items-center space-x-2 ${
+                  showTerminal
+                    ? 'bg-gray-600 hover:bg-gray-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                } focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900`}
+              >
+                <Terminal className="h-5 w-5" />
+                <span>{showTerminal ? 'Masquer le Terminal Expert (Simulé)' : 'Afficher le Terminal Expert (Simulé)'}</span> {/* Texte mis à jour */}
+            </button>
+
+           {showTerminal && (
+              <div className="bg-black text-cyan-400 font-mono text-sm rounded-md border border-gray-700 p-3 space-y-2">
+                  <div className="h-64 overflow-y-auto whitespace-pre-wrap" ref={terminalOutputRef}>
+                      {/* Afficher l'historique des commandes et sorties */}
+                      {terminalHistory.map((item, index) => (
+                          <div key={index} className={item.type === 'command' ? 'text-gray-300' : 'text-cyan-400'}>
+                              {item.text}
+                          </div>
+                      ))}
+                  </div>
+                  <div className="flex items-center">
+                      <span className="text-gray-300 mr-2">msf6 &gt;</span>
+                      <input
+                          type="text"
+                          value={terminalInput}
+                          onChange={(e) => setTerminalInput(e.target.value)}
+                          onKeyPress={handleTerminalCommand}
+                          className="flex-1 bg-transparent border-none outline-none text-cyan-400"
+                          autoFocus // Met le focus sur l'input quand le terminal apparaît
+                      />
+                  </div>
+              </div>
+           )}
+       </div>
+
+    </div>
+  );
+}
+
+
+// --- Section Cryptographie ---
+function CryptoSection() {
+  const [inputText, setInputText] = useState('');
+  const [outputText, setOutputText] = useState('');
+  const [cryptoAction, setCryptoAction] = useState('base64_encode'); // ou 'base64_decode', 'caesar_encrypt', etc.
+  const [caesarShift, setCaesarShift] = useState(3);
+  const [file, setFile] = useState(null); // Pour la simulation de fichier
+  const [isLoading, setIsLoading] = useState(false); // Ajout état de chargement
+
+  // Classe CSS pour les inputs SANS outline/ring au focus
+  const inputStyleNoFocusRing = "w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none text-gray-100 placeholder-gray-400";
+  // Classe CSS pour les inputs AVEC outline/ring au focus
+  const inputStyleFocusRing = "w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-100 placeholder-gray-400";
+  // Classe CSS pour les textareas
+  const textareaStyleFocusRing = "w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-100 placeholder-gray-400";
+
+
+  // Simule une opération de cryptographie sur le texte
+  const handleTextCrypto = async () => {
+    setIsLoading(true);
+    setOutputText('Traitement...');
+    await new Promise(resolve => setTimeout(resolve, 50)); // Petit délai pour afficher "Traitement..."
+
+    let result = '';
+    try {
+      switch (cryptoAction) {
+        case 'base64_encode':
+          result = btoa(unescape(encodeURIComponent(inputText))); // Gère UTF-8
+          break;
+        case 'base64_decode':
+          result = decodeURIComponent(escape(atob(inputText))); // Gère UTF-8
+          break;
+        case 'url_encode':
+          result = encodeURIComponent(inputText);
+          break;
+        case 'url_decode':
+          result = decodeURIComponent(inputText);
+          break;
+        case 'caesar_encrypt':
+          result = caesarCipher(inputText, caesarShift);
+          break;
+        case 'caesar_decrypt':
+           result = caesarCipher(inputText, -caesarShift); // Déchiffre en décalant dans l'autre sens
+          break;
+        case 'rot13':
+           result = caesarCipher(inputText, 13); // ROT13 est un César avec décalage 13
+           break;
+        // --- Hachage (Simulation avec Web Crypto API si disponible) ---
+        case 'md5_hash': // MD5 n'est pas dans Web Crypto, simulation simple
+           result = `Simulation MD5: ${inputText.substring(0,32)}`; // Très basique
+           break;
+        case 'sha1_hash':
+        case 'sha256_hash':
+        case 'sha512_hash':
+            if (window.crypto && window.crypto.subtle) {
+                const algo = cryptoAction === 'sha1_hash' ? 'SHA-1' : (cryptoAction === 'sha256_hash' ? 'SHA-256' : 'SHA-512');
+                const hashBuffer = await crypto.subtle.digest(algo, new TextEncoder().encode(inputText));
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                result = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            } else {
+                result = `Simulation ${cryptoAction.split('_')[0].toUpperCase()}: Web Crypto API non disponible.`;
+            }
+            break;
+        // --- Autres ---
+        default:
+          result = 'Action non implémentée (simulation).';
+      }
+      setOutputText(result);
+    } catch (error) {
+       setOutputText(`Erreur: ${error.message}. Assurez-vous que l'entrée est valide pour l'opération (ex: Base64 valide pour le décodage).`);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  // Fonction simple pour le Chiffre de César (pour démo)
+  const caesarCipher = (str, shift) => {
+    const s = shift % 26; // Gère les décalages > 25 ou < 0
+    return str.split('').map(char => {
+      const code = char.charCodeAt(0);
+      // Majuscules
+      if (code >= 65 && code <= 90) {
+        return String.fromCharCode(((code - 65 + s + 26) % 26) + 65); // Ajout + 26 pour gérer décalage négatif
+      }
+      // Minuscules
+      if (code >= 97 && code <= 122) {
+        return String.fromCharCode(((code - 97 + s + 26) % 26) + 97); // Ajout + 26 pour gérer décalage négatif
+      }
+      return char; // Ne modifie pas les autres caractères
+    }).join('');
+  };
+
+  // Simule le traitement d'un fichier (ne fait rien de réel)
+  const handleFileChange = (event) => {
+    if (event.target.files && event.target.files[0]) {
+      setFile(event.target.files[0]);
+      setOutputText(`Fichier "${event.target.files[0].name}" sélectionné. La cryptographie de fichier n'est pas implémentée dans cette démo.`);
+    } else {
+      setFile(null);
+      // Optionnel: vider outputText si aucun fichier n'est sélectionné
+      // setOutputText('');
+    }
+     // Réinitialiser l'input file pour permettre de re-sélectionner le même fichier
+     event.target.value = null;
+  };
+
+
+  // Options de cryptographie pour l'UI
+  const cryptoOptions = [
+    { id: 'base64_encode', name: 'Base64 Encoder (Texte)' },
+    { id: 'base64_decode', name: 'Base64 Decoder (Texte)' },
+    { id: 'url_encode', name: 'URL Encoder (Texte)' },
+    { id: 'url_decode', name: 'URL Decoder (Texte)' },
+    { id: 'caesar_encrypt', name: 'Chiffre de César (Texte) - Chiffrer' },
+    { id: 'caesar_decrypt', name: 'Chiffre de César (Texte) - Déchiffrer' },
+    { id: 'rot13', name: 'ROT13 (Texte)' },
+    { id: 'md5_hash', name: 'MD5 Hash (Texte - Simulation)' }, // Non sécurisé, juste pour démo
+    { id: 'sha1_hash', name: 'SHA-1 Hash (Texte - Web Crypto)' }, // Non recommandé pour sécu
+    { id: 'sha256_hash', name: 'SHA-256 Hash (Texte - Web Crypto)' },
+    { id: 'sha512_hash', name: 'SHA-512 Hash (Texte - Web Crypto)' }, // Ajouté
+    { id: 'aes_encrypt_file', name: 'AES Chiffrer Fichier (Simulation)' }, // Non implémenté
+    { id: 'aes_decrypt_file', name: 'AES Déchiffrer Fichier (Simulation)' }, // Non implémenté
+    { id: 'rsa_generate_keys', name: 'RSA Générer Clés (Simulation)' }, // Ajouté
+    { id: 'rsa_encrypt', name: 'RSA Chiffrer (Simulation)' },
+    { id: 'rsa_decrypt', name: 'RSA Déchiffrer (Simulation)' },
+    { id: 'pgp_sign', name: 'PGP Signer (Simulation)' },
+    { id: 'pgp_verify', name: 'PGP Vérifier (Simulation)' }, // Ajouté
+    // Ajouter d'autres pour atteindre 15+
+  ];
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-semibold text-green-400 border-b border-gray-700 pb-2">Cryptographie (Simulation)</h2>
+
+      {/* Sélection de l'opération */}
+      <div>
+        <label htmlFor="cryptoAction" className="block text-sm font-medium text-gray-300 mb-1">Opération Cryptographique</label>
+        <select
+          id="cryptoAction"
+          value={cryptoAction}
+          onChange={(e) => setCryptoAction(e.target.value)}
+          className={inputStyleFocusRing} // Style avec focus ring
+        >
+          {cryptoOptions.map(opt => (
+             <option key={opt.id} value={opt.id}>{opt.name}</option>
+          ))}
+        </select>
+      </div>
+
+       {/* Options spécifiques (ex: décalage César) */}
+       {(cryptoAction === 'caesar_encrypt' || cryptoAction === 'caesar_decrypt') && (
+         <div>
+           <label htmlFor="caesarShift" className="block text-sm font-medium text-gray-300 mb-1">Décalage César (1-25)</label>
+           <input
+             type="number"
+             id="caesarShift"
+             value={caesarShift}
+             onChange={(e) => {
+                let val = parseInt(e.target.value, 10);
+                if (isNaN(val)) val = 1; // Défaut si non numérique
+                val = Math.max(1, Math.min(25, val)); // Contraint entre 1 et 25
+                setCaesarShift(val);
+             }}
+             className={inputStyleFocusRing} // Style avec focus ring
+             min="1"
+             max="25"
+           />
+         </div>
+       )}
+
+
+      {/* Section Texte */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="inputText" className="block text-sm font-medium text-gray-300 mb-1">Texte d'Entrée</label>
+          <textarea
+            id="inputText"
+            rows="8"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            className={textareaStyleFocusRing} // Style avec focus ring
+            placeholder="Entrez le texte ici..."
+            disabled={isLoading} // Désactiver pendant le traitement
+          ></textarea>
+        </div>
+        <div>
+          <label htmlFor="outputText" className="block text-sm font-medium text-gray-300 mb-1">Texte de Sortie</label>
+          <textarea
+            id="outputText"
+            rows="8"
+            readOnly
+            value={outputText}
+            className={`${textareaStyleFocusRing} bg-gray-800`} // Fond légèrement différent pour sortie
+            placeholder="Le résultat apparaîtra ici..."
+          ></textarea>
+        </div>
+      </div>
+       <button
+          onClick={handleTextCrypto}
+          disabled={isLoading}
+          className={`px-4 py-2 rounded-md text-white font-semibold transition-colors duration-200 flex items-center space-x-2 ${
+            isLoading
+              ? 'bg-gray-500 cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-900' // Ajout styles focus
+          }`}
+        >
+         {isLoading ? (
+             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+             <ListChecks className="h-5 w-5" />
+          )}
+          <span>{isLoading ? 'Traitement...' : 'Traiter le Texte'}</span>
+        </button>
+
+
+      {/* Section Fichier (Simulation) */}
+       <div className="mt-6 pt-6 border-t border-gray-700">
+         <h3 className="text-xl font-medium text-gray-200 mb-3">Traitement de Fichier (Simulation)</h3>
+         <p className="text-sm text-gray-400 mb-3">La cryptographie réelle des fichiers nécessite un backend sécurisé et n'est pas implémentée ici.</p>
+         <div>
+           <label htmlFor="fileInput" className="block text-sm font-medium text-gray-300 mb-1">Sélectionner un Fichier</label>
+           <input
+             type="file"
+             id="fileInput"
+             onChange={handleFileChange}
+             className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900" // Ajout styles focus
+            />
+         </div>
+         {file && (
+            <p className="mt-2 text-sm text-gray-300">Fichier sélectionné: <span className="font-medium">{file.name}</span> ({Math.round(file.size / 1024)} KB)</p>
+         )}
+          {/* Bouton désactivé pour montrer que ce n'est pas fonctionnel */}
+          <button
+            disabled
+            className="mt-4 px-4 py-2 rounded-md text-white font-semibold bg-gray-500 cursor-not-allowed flex items-center space-x-2"
+          >
+            <FileText className="h-5 w-5" />
+            <span>Traiter le Fichier (Désactivé)</span>
+          </button>
+       </div>
+
+    </div>
+  );
+}
+
+// --- Nouvelle Section Paramètres ---
+function SettingsSection() {
+    return (
+        <div className="space-y-6">
+            <h2 className="text-3xl font-semibold text-gray-400 border-b border-gray-700 pb-2">Paramètres</h2>
+            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                <h3 className="text-xl font-medium text-gray-200 mb-3">Réglages de l'Application (Simulation)</h3>
+                <p className="text-sm text-gray-400">
+                    Cette section est un espace réservé pour les futurs paramètres de l'application, tels que :
+                </p>
+                <ul className="list-disc list-inside text-sm text-gray-400 mt-2 space-y-1">
+                    <li>Configuration de l'interface utilisateur</li>
+                    <li>Options de journalisation (logging)</li>
+                    <li>Gestion des API Keys (si un backend réel était implémenté)</li>
+                    <li>Thèmes ou personnalisation visuelle</li>
+                    <li>... et d'autres réglages.</li>
+                </ul>
+                 <p className="mt-4 text-sm text-gray-400 italic">
+                    Actuellement, aucune fonctionnalité de paramètre réelle n'est implémentée dans cette démo.
+                 </p>
+            </div>
+            {/* Vous pouvez ajouter d'autres sections de paramètres ici */}
+        </div>
+    );
+}
+
+
+export default App;
