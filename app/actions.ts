@@ -16,9 +16,7 @@ export async function checkAndAddUser(email: string | undefined) {
             await prisma.user.create({
                 data: { email }
             })
-            console.log("Nouvel utilisateur ajouté dans la base de données")
         } else {
-            console.log("Utilisateur déjà présent dans la base de données")
         }
 
     } catch (error) {
@@ -172,7 +170,6 @@ export const deleteBudget = async (budgetId: string) => {
 
 export async function deleteTransaction(transactionId: string) {
     try {
-        console.log(" id de la transact", transactionId)
         const transaction = await prisma.transaction.findUnique({
             where: {
                 id: transactionId
@@ -270,8 +267,12 @@ export async function getTotalTransactionAmount(email: string) {
             where: { email },
             include: {
                 budgets: {
-                    include: {
-                        transactions: true
+                    select: {
+                        transactions: {
+                            _sum: {
+                                amount: true
+                            }
+                        }
                     }
                 }
             }
@@ -279,8 +280,8 @@ export async function getTotalTransactionAmount(email: string) {
 
         if (!user) throw new Error("Utilisateur non trouvé");
 
-        const totalAmount = user.budgets.reduce((sum, budgets) => {
-            return sum + budgets.transactions.reduce((budjeSum, transaction) => budjeSum + transaction.amount, 0)
+        const totalAmount = user.budgets.reduce((sum, budget) => {
+            return sum + (budget.transactions._sum.amount || 0)
         }, 0)
 
         return totalAmount
@@ -297,8 +298,10 @@ export async function getTotalTransactionCount(email: string) {
             where: { email },
             include: {
                 budgets: {
-                    include: {
-                        transactions: true
+                    select: {
+                        transactions: {
+                            _count: true
+                        }
                     }
                 }
             }
@@ -307,7 +310,7 @@ export async function getTotalTransactionCount(email: string) {
         if (!user) throw new Error("Utilisateur non trouvé");
 
         const totalCount = user.budgets.reduce((count, budget) => {
-            return count + budget.transactions.length
+            return count + (budget.transactions._count || 0)
         }, 0)
 
         return totalCount
@@ -326,7 +329,11 @@ export async function getReachedBudgets(email: string) {
             include: {
                 budgets: {
                     include: {
-                        transactions: true
+                        transactions: {
+                            select: {
+                                amount: true
+                            }
+                        }
                     }
                 }
             }
@@ -335,10 +342,10 @@ export async function getReachedBudgets(email: string) {
         if (!user) throw new Error("Utilisateur non trouvé");
 
         const totalBudgets = user.budgets.length;
-        const reachedBudgets = user.budgets.filter(budjet => {
-            const totalTransactionsAmount = budjet.transactions.
+        const reachedBudgets = user.budgets.filter(budget => {
+            const totalTransactionsAmount = budget.transactions.
                 reduce((sum, transaction) => sum + transaction.amount, 0)
-            return totalTransactionsAmount >= budjet.amount
+            return totalTransactionsAmount >= budget.amount
         }).length
 
         return `${reachedBudgets}/${totalBudgets}`
@@ -354,7 +361,17 @@ export async function getUserBudgetData(email: string) {
 
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { budgets: { include: { transactions: true } } },
+            include: {
+                budgets: {
+                    include: {
+                        transactions: {
+                            select: {
+                                amount: true
+                            }
+                        }
+                    }
+                }
+            },
         });
 
         if (!user) {

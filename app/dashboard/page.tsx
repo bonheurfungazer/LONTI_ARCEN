@@ -1,7 +1,7 @@
 "use client"
 
 import { useUser } from '@clerk/nextjs';
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useCallback } from 'react'
 import { getLastBudgets, getLastTransactions, getReachedBudgets, getTotalTransactionAmount, getTotalTransactionCount, getUserBudgetData } from '../actions';
 import Wrapper from '../components/Wrapper';
 import { CircleDollarSign, Landmark, PiggyBank } from 'lucide-react';
@@ -12,7 +12,7 @@ import Link from 'next/link';
 import TransactionItem from '../components/TransactionItem';
 import { DevicesContext, DevicesProvider } from '../components/DevicesProvider';
 import TransactionsItems from '../components/TransactionItem';
-const page = () => {
+const Page = () => {
   const { user } = useUser();
   const { currentSymbol } = useContext(DevicesContext);
   const [totalAmount, setTotalAmount] = useState<number | null>(null)
@@ -24,7 +24,7 @@ const page = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
 
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true)
     try {
       const email = user?.primaryEmailAddress?.emailAddress as string
@@ -47,11 +47,11 @@ const page = () => {
     } catch (error) {
       console.error("Erreur lors de la récupération des données:", error);
     }
-  }
+  }, [user?.primaryEmailAddress?.emailAddress, setTotalAmount, setTotalCount, setReachedBudgetsRatio, setBudgetData, setTransactions, setBudgets, setIsLoading]);
 
   useEffect(() => {
     fetchData()
-  }, [user])
+  }, [user, fetchData])
 
   return (
     <DevicesProvider>
@@ -270,7 +270,7 @@ const page = () => {
   )
 }
 
-export default page;
+export default Page;
 
 
 /* <DevicesProvider>

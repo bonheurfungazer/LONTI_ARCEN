@@ -2,18 +2,18 @@
 
 import { Transaction } from "@/type";
 import { useUser } from "@clerk/nextjs";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { getTransactionsByEmailAndPeriod } from "../actions";
 import Wrapper from "../components/Wrapper";
 import TransactionsItems from "../components/TransactionItem";
 import { DevicesProvider } from "../components/DevicesProvider";
 
-const page = () => {
+const Page = () => {
   const { user } = useUser();
   const [transactions, setTransaction] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const fetchTransactions = async (period: string) => {
+  const fetchTransactions = useCallback(async (period: string) => {
     if (user?.primaryEmailAddress?.emailAddress) {
       setLoading(true);
       try {
@@ -27,11 +27,11 @@ const page = () => {
         console.error("Erreur lors de la recuperation des transaction", err);
       }
     }
-  };
+  }, [user?.primaryEmailAddress?.emailAddress, setTransaction, setLoading]);
 
   useEffect(() => {
     fetchTransactions("last30");
-  }, [user?.primaryEmailAddress?.emailAddress]);
+  }, [user?.primaryEmailAddress?.emailAddress, fetchTransactions]);
   return (
     <DevicesProvider>
       <Wrapper>
@@ -75,4 +75,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

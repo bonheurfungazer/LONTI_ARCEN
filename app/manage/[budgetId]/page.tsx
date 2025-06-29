@@ -15,7 +15,7 @@ import { Send, Trash } from "lucide-react";
 import { redirect } from "next/navigation";
 import { DevicesContext, DevicesProvider } from "@/app/components/DevicesProvider";
 
-const page = ({ params }: { params: Promise<{ budgetId: string }> }) => {
+const Page = ({ params }: { params: Promise<{ budgetId: string }> }) => {
   const { currentSymbol } = useContext(DevicesContext);
   const [budgetId, setbudgetId] = useState<string>("");
   const [budget, setBudget] = useState<Budget>();
@@ -69,8 +69,8 @@ const page = ({ params }: { params: Promise<{ budgetId: string }> }) => {
       fetchBudgetData(budgetId);
       setAmount("");
       setDescription("");
-    } catch (error) {
-      setNotification("Vous avez depasser le budget");
+    } catch (error: any) {
+      setNotification(`Erreur: ${error.message}`);
     }
   };
 
@@ -207,4 +207,4 @@ const page = ({ params }: { params: Promise<{ budgetId: string }> }) => {
   );
 };
 
-export default page;
+export default Page;

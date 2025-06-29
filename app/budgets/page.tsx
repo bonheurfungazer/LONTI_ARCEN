@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Children, useEffect, useState } from "react";
+import React, { Children, useEffect, useState, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import Wrapper from "../components/Wrapper";
 import { useUser } from "@clerk/nextjs";
@@ -13,7 +13,7 @@ import BudgetItem from "../components/BudgetItem";
 import { Landmark } from "lucide-react";
 import { DevicesProvider } from "../components/DevicesProvider";
 
-const page = () => {
+const Page = () => {
   const { user } = useUser();
   const [budgetName, setBudgetName] = useState<string>("");
   const [budgetAmount, setBudgetAmount] = useState<string>("");
@@ -64,9 +64,9 @@ const page = () => {
 
   useEffect(() => {
     fetchBudgets();
-  }, [user?.primaryEmailAddress?.emailAddress]);
+  }, [user?.primaryEmailAddress?.emailAddress, fetchBudgets]);
 
-  const fetchBudgets = async () => {
+  const fetchBudgets = useCallback(async () => {
     if (user?.primaryEmailAddress?.emailAddress) {
       try {
         const userBudgets = await getBudgetsByUser(
@@ -77,7 +77,7 @@ const page = () => {
         setNotification(`Erreur lors de la recuperation du Budget: ${error}`);
       }
     }
-  };
+  }, [user?.primaryEmailAddress?.emailAddress, setBudgets, setNotification]);
   return (
     <DevicesProvider>
       <Wrapper>
@@ -158,4 +158,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
