@@ -16,7 +16,7 @@ interface DevicesProps {
 
 const Devices = ({ className }: DevicesProps) => {
   const { currentSymbol, setCurrentSymbol } = useContext(DevicesContext);
-  const [currencies, setCurrencies] = useState<Currency[]>([
+  const [currencies] = useState<Currency[]>([
     { id: 1, name: 'USD', symbol: '$', country: 'États-Unis ou Canada' },
     { id: 2, name: 'EUR', symbol: '€', country: 'Europe' },
     { id: 4, name: 'GBP', symbol: '£', country: 'Royaume-Uni' },
@@ -25,23 +25,31 @@ const Devices = ({ className }: DevicesProps) => {
   ]);
 
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
-  const handleCurrencyChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedCurrencyId = event.target.value;
-    const currency = currencies.find((currency) => currency.name === selectedCurrencyId);
-    setSelectedCurrency(currency?.name ?? null);
-    setCurrentSymbol(currency?.symbol ?? '');
+
+  const handleCurrencySelect = (currency: Currency) => {
+    setSelectedCurrency(currency.name);
+    setCurrentSymbol(currency.symbol);
+    // Blur to close the dropdown
+    const elem = document.activeElement as HTMLElement;
+    if (elem) {
+      elem.blur();
+    }
   };
 
   return (
-    <div className={className}>
-      <select value={selectedCurrency ?? ''} onChange={handleCurrencyChange} className='w-full h-full'>
-        <option value="">Devise</option>
+    <div className="dropdown dropdown-end">
+      <div tabIndex={0} role="button" className={className || "btn"}>
+        {selectedCurrency ? `${selectedCurrency} ` : "Devise"}
+      </div>
+      <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
         {currencies.map((currency) => (
-          <option key={currency.id} value={currency.name}>
-            {currency.name} ({currency.country}) - {currency.symbol}
-          </option>
+          <li key={currency.id}>
+            <button onClick={() => handleCurrencySelect(currency)}>
+              {currency.name} {currency.symbol}
+            </button>
+          </li>
         ))}
-      </select>
+      </ul>
     </div>
   );
 };

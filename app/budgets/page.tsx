@@ -31,6 +31,19 @@ const Page = () => {
     setNotification("");
   };
 
+  const fetchBudgets = useCallback(async () => {
+    if (user?.primaryEmailAddress?.emailAddress) {
+      try {
+        const userBudgets = await getBudgetsByUser(
+          user?.primaryEmailAddress?.emailAddress
+        );
+        setBudgets(userBudgets);
+      } catch (error) {
+        setNotification(`Erreur lors de la recuperation du Budget: ${error}`);
+      }
+    }
+  }, [user?.primaryEmailAddress?.emailAddress, setBudgets, setNotification]);
+
   const handleAddBudget = async () => {
     try {
       const amount = parseFloat(budgetAmount);
@@ -65,19 +78,6 @@ const Page = () => {
   useEffect(() => {
     fetchBudgets();
   }, [user?.primaryEmailAddress?.emailAddress, fetchBudgets]);
-
-  const fetchBudgets = useCallback(async () => {
-    if (user?.primaryEmailAddress?.emailAddress) {
-      try {
-        const userBudgets = await getBudgetsByUser(
-          user?.primaryEmailAddress?.emailAddress
-        );
-        setBudgets(userBudgets);
-      } catch (error) {
-        setNotification(`Erreur lors de la recuperation du Budget: ${error}`);
-      }
-    }
-  }, [user?.primaryEmailAddress?.emailAddress, setBudgets, setNotification]);
   return (
     <DevicesProvider>
       <Wrapper>
