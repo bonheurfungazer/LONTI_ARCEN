@@ -265,26 +265,23 @@ export async function getTotalTransactionAmount(email: string) {
     try {
         const user = await prisma.user.findUnique({
             where: { email },
-            include: {
-                budgets: {
-                    select: {
-                        transactions: {
-                            _sum: {
-                                amount: true
-                            }
-                        }
-                    }
-                }
-            }
-        })
+            select: { id: true }
+        });
 
         if (!user) throw new Error("Utilisateur non trouvé");
 
-        const totalAmount = user.budgets.reduce((sum, budget) => {
-            return sum + (budget.transactions._sum.amount || 0)
-        }, 0)
+        const aggregations = await prisma.transaction.aggregate({
+            _sum: {
+                amount: true,
+            },
+            where: {
+                budget: {
+                    userId: user.id
+                }
+            }
+        });
 
-        return totalAmount
+        return aggregations._sum.amount || 0;
 
     } catch (error) {
         console.error("Erreur lors du calcul du montant total des transactions:", error);
@@ -296,24 +293,20 @@ export async function getTotalTransactionCount(email: string) {
     try {
         const user = await prisma.user.findUnique({
             where: { email },
-            include: {
-                budgets: {
-                    select: {
-                        transactions: {
-                            _count: true
-                        }
-                    }
-                }
-            }
-        })
+            select: { id: true }
+        });
 
         if (!user) throw new Error("Utilisateur non trouvé");
 
-        const totalCount = user.budgets.reduce((count, budget) => {
-            return count + (budget.transactions._count || 0)
-        }, 0)
+        const count = await prisma.transaction.count({
+            where: {
+                budget: {
+                    userId: user.id
+                }
+            }
+        });
 
-        return totalCount
+        return count;
     } catch (error) {
         console.error("Erreur lors du comptage des transactions:", error);
         throw error;
